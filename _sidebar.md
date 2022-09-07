@@ -1,0 +1,80 @@
+- 后台
+  - [Minio对象存储](后台\Minio对象存储.md)
+  - [SpringBoot](后台\SpringBoot.md)
+  - [SpringSecurity](后台\SpringSecurity.md)
+- 路线图
+  - [路线图](路线图\20190819100328404.png) 
+- 算法
+  - [二分法](算法\二分法.md)
+  - [深度优先](算法\深度优先.md)  
+- 总结
+  - [合并Jar](总结\合并Jar.md)
+  - [Android生成aar 和 jar](总结\Android生成aar和jar.md) 
+  - [Dex](总结\Dex.md) 
+  - [Maven上传aar包](总结\Maven上传aar包.md) 
+  - [多Flavor](总结\多Flavor.md) 
+  - [经验](总结\经验.md)  
+- Android
+  - Hook
+    - [ASM](android\Hook\ASM.md)
+    - [Class文件](android\Hook\Class文件.md)
+    - [Hook](android\Hook\Hook.md)
+  - 设计模式
+  - Android源码
+  - 优化
+    - [SharepreferenceAnr](android\优化\SharepreferenceAnr.md)
+  - [Android12适配](android\Android12适配.md)
+  - [Android 架构](android\Android架构.md)
+  - [JVM对象引用](android\JVM对象引用.md)
+  - [JVM内存模型](android\JVM内存模型.md)
+  - [Service Provider Interface](android\Service_Provider_Interface.md)
+  - [ByteBuffer](android\ByteBuffer.md)
+  - [Adb](android\adb.md)
+- Bash
+  - [读取文件](Bash/读取文件.md)
+- Flutter
+  - [安装](Flutter/安装.md)
+  - [布局原理](Flutter/布局原理.md)
+  - [绘制原理](Flutter/绘制原理.md)
+  - [图片加载流程](Flutter/图片加载流程.md)
+  - [知识点](Flutter/知识点.md)
+  - [状态管理设计](Flutter/状态管理设计.md)
+  - [Dart_Flutter基础](Flutter/Dart_Flutter基础.md)
+  - [FormUtil](Flutter/FormUtil.md)
+  - [Stream](Flutter/Stream.md)
+  - [Widget原理](Widget原理.md)
+  - [ByteBuffer](E:\lore\ByteBuffer.md)
+  - [Dart Flutter基础](E:\lore\Flutter\Dart_Flutter基础.md)
+  - [FormUtil](E:\lore\Flutter\FormUtil.md)
+  - [Stream](E:\lore\Flutter\Stream.md)
+  - [Widget原理](E:\lore\Flutter\Widget原理.md)
+- Git 
+  - [gitlab ci](git/gitlab%20ci.md)
+  - [sdkmanager](git/sdkmanager.md)
+  - [ubuntu](git/ubuntu.md)
+- Gradle
+  - [gradle](Gradle/gradle.md)
+  - [GradlePlugin](Gradle/GradlePlugin.md)
+  - [GradleProject](Gradle/GradleProject.md)
+  - [GradleTask](Gradle/GradleTask.md)
+- Jetpack Compose
+  - [DataBinding](JetpackCompose/DataBinding.md)
+  - [Hilt](JetpackCompose/Hilt.md)
+  - [Lifecycle](JetpackCompose/Lifecycle.md)
+  - [LiveData](JetpackCompose/LiveData.md)
+  - [ViewModel](JetpackCompose/ViewModel.md)
+  - [viewpager2](JetpackCompose/viewpager2.md)
+- Kotlin 
+  - [协程](Kotlin\协程.md)
+  - [总结](Kotlin\总结.md)
+  - [垃圾回收机制](Kotlin\垃圾回收机制.md)
+  - [热修复](Kotlin\热修复.md)
+  - [双亲委托加载](Kotlin\双亲委托加载.md)
+  - [协程](Kotlin\协程.md)
+- Linux
+  - [替换文本](Linux\替换文本.md)
+- Vue
+  - Sass
+    - [Sass安装](Vue\Sass\Sass安装.md)
+  - [组件](Vue/组件.md)
+

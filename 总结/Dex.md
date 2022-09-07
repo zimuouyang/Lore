@@ -1,0 +1,1 @@
+- 命令： dx --dex --min-sdk-version=26 --output=a-dex.dex E:\workpace\NewLand\Dex\test.jar
