@@ -1296,3 +1296,439 @@ private State calculateTargetState(LifecycleObserver observer) {
 添加观察者，并通过`while`循环，将最新的`State`状态连续同步到`Observer`中，虽然可能添加`Observer`比`LifecyleOwner`分发事件晚，但是依然能收到所有事件，类似于事件总线的粘性事件。最后画一下整体的类图关系：
 
 ![img](https://img-blog.csdnimg.cn/img_convert/3aac978ae99940553f232df89d3c3716.png)
+
+
+
+Lifecycle 抽象类，主要定义了增加/删除监听者的方法，及根据state 转化为event，以及通过event获取state
+
+| State        | 调用时机                  |
+| ------------ | ------------------------- |
+| DESTROYED    | onDestroy之前调用         |
+| INITIALIZED, | onCreate之前调用          |
+| CREATED      | onCreate 之后，onStop之前 |
+| STARTED      | onStart 之后，onpause之前 |
+| RESUMED      | onResume 之后             |
+
+Event对应Android生命周期的方法
+
+```java
+public abstract class Lifecycle {
+
+    /**
+     * Lifecycle coroutines extensions stashes the CoroutineScope into this field.
+     *
+     * @hide used by lifecycle-common-ktx
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @NonNull
+    AtomicReference<Object> mInternalScopeRef = new AtomicReference<>();
+
+    /**
+     * Adds a LifecycleObserver that will be notified when the LifecycleOwner changes
+     * state.
+     * <p>
+     * The given observer will be brought to the current state of the LifecycleOwner.
+     * For example, if the LifecycleOwner is in {@link State#STARTED} state, the given observer
+     * will receive {@link Event#ON_CREATE}, {@link Event#ON_START} events.
+     *
+     * @param observer The observer to notify.
+     */
+    @MainThread
+    public abstract void addObserver(@NonNull LifecycleObserver observer);
+
+    /**
+     * Removes the given observer from the observers list.
+     * <p>
+     * If this method is called while a state change is being dispatched,
+     * <ul>
+     * <li>If the given observer has not yet received that event, it will not receive it.
+     * <li>If the given observer has more than 1 method that observes the currently dispatched
+     * event and at least one of them received the event, all of them will receive the event and
+     * the removal will happen afterwards.
+     * </ul>
+     *
+     * @param observer The observer to be removed.
+     */
+    @MainThread
+    public abstract void removeObserver(@NonNull LifecycleObserver observer);
+
+    /**
+     * Returns the current state of the Lifecycle.
+     *
+     * @return The current state of the Lifecycle.
+     */
+    @MainThread
+    @NonNull
+    public abstract State getCurrentState();
+
+    @SuppressWarnings("WeakerAccess")
+    public enum Event {
+        /**
+         * Constant for onCreate event of the {@link LifecycleOwner}.
+         */
+        ON_CREATE,
+        /**
+         * Constant for onStart event of the {@link LifecycleOwner}.
+         */
+        ON_START,
+        /**
+         * Constant for onResume event of the {@link LifecycleOwner}.
+         */
+        ON_RESUME,
+        /**
+         * Constant for onPause event of the {@link LifecycleOwner}.
+         */
+        ON_PAUSE,
+        /**
+         * Constant for onStop event of the {@link LifecycleOwner}.
+         */
+        ON_STOP,
+        /**
+         * Constant for onDestroy event of the {@link LifecycleOwner}.
+         */
+        ON_DESTROY,
+        /**
+         * An {@link Event Event} constant that can be used to match all events.
+         */
+        ON_ANY;
+
+        /**
+         * Returns the {@link Lifecycle.Event} that will be reported by a {@link Lifecycle}
+         * leaving the specified {@link Lifecycle.State} to a lower state, or {@code null}
+         * if there is no valid event that can move down from the given state.
+         *
+         * @param state the higher state that the returned event will transition down from
+         * @return the event moving down the lifecycle phases from state
+         */
+        @Nullable
+        public static Event downFrom(@NonNull State state) {
+            switch (state) {
+                case CREATED:
+                    return ON_DESTROY;
+                case STARTED:
+                    return ON_STOP;
+                case RESUMED:
+                    return ON_PAUSE;
+                default:
+                    return null;
+            }
+        }
+
+        /**
+         * Returns the {@link Lifecycle.Event} that will be reported by a {@link Lifecycle}
+         * entering the specified {@link Lifecycle.State} from a higher state, or {@code null}
+         * if there is no valid event that can move down to the given state.
+         *
+         * @param state the lower state that the returned event will transition down to
+         * @return the event moving down the lifecycle phases to state
+         */
+        @Nullable
+        public static Event downTo(@NonNull State state) {
+            switch (state) {
+                case DESTROYED:
+                    return ON_DESTROY;
+                case CREATED:
+                    return ON_STOP;
+                case STARTED:
+                    return ON_PAUSE;
+                default:
+                    return null;
+            }
+        }
+
+        /**
+         * Returns the {@link Lifecycle.Event} that will be reported by a {@link Lifecycle}
+         * leaving the specified {@link Lifecycle.State} to a higher state, or {@code null}
+         * if there is no valid event that can move up from the given state.
+         *
+         * @param state the lower state that the returned event will transition up from
+         * @return the event moving up the lifecycle phases from state
+         */
+        @Nullable
+        public static Event upFrom(@NonNull State state) {
+            switch (state) {
+                case INITIALIZED:
+                    return ON_CREATE;
+                case CREATED:
+                    return ON_START;
+                case STARTED:
+                    return ON_RESUME;
+                default:
+                    return null;
+            }
+        }
+
+        /**
+         * Returns the {@link Lifecycle.Event} that will be reported by a {@link Lifecycle}
+         * entering the specified {@link Lifecycle.State} from a lower state, or {@code null}
+         * if there is no valid event that can move up to the given state.
+         *
+         * @param state the higher state that the returned event will transition up to
+         * @return the event moving up the lifecycle phases to state
+         */
+        @Nullable
+        public static Event upTo(@NonNull State state) {
+            switch (state) {
+                case CREATED:
+                    return ON_CREATE;
+                case STARTED:
+                    return ON_START;
+                case RESUMED:
+                    return ON_RESUME;
+                default:
+                    return null;
+            }
+        }
+
+        /**
+         * Returns the new {@link Lifecycle.State} of a {@link Lifecycle} that just reported
+         * this {@link Lifecycle.Event}.
+         *
+         * Throws {@link IllegalArgumentException} if called on {@link #ON_ANY}, as it is a special
+         * value used by {@link OnLifecycleEvent} and not a real lifecycle event.
+         *
+         * @return the state that will result from this event
+         */
+        @NonNull
+        public State getTargetState() {
+            switch (this) {
+                case ON_CREATE:
+                case ON_STOP:
+                    return State.CREATED;
+                case ON_START:
+                case ON_PAUSE:
+                    return State.STARTED;
+                case ON_RESUME:
+                    return State.RESUMED;
+                case ON_DESTROY:
+                    return State.DESTROYED;
+                case ON_ANY:
+                    break;
+            }
+            throw new IllegalArgumentException(this + " has no target state");
+        }
+    }
+
+    /**
+     * Lifecycle states. You can consider the states as the nodes in a graph and
+     * {@link Event}s as the edges between these nodes.
+     */
+    @SuppressWarnings("WeakerAccess")
+    public enum State {
+        /**
+         * Destroyed state for a LifecycleOwner. After this event, this Lifecycle will not dispatch
+         * any more events. For instance, for an {@link android.app.Activity}, this state is reached
+         * <b>right before</b> Activity's {@link android.app.Activity#onDestroy() onDestroy} call.
+         */
+        DESTROYED,
+
+        /**
+         * Initialized state for a LifecycleOwner. For an {@link android.app.Activity}, this is
+         * the state when it is constructed but has not received
+         * {@link android.app.Activity#onCreate(android.os.Bundle) onCreate} yet.
+         */
+        INITIALIZED,
+
+        /**
+         * Created state for a LifecycleOwner. For an {@link android.app.Activity}, this state
+         * is reached in two cases:
+         * <ul>
+         *     <li>after {@link android.app.Activity#onCreate(android.os.Bundle) onCreate} call;
+         *     <li><b>right before</b> {@link android.app.Activity#onStop() onStop} call.
+         * </ul>
+         */
+        CREATED,
+
+        /**
+         * Started state for a LifecycleOwner. For an {@link android.app.Activity}, this state
+         * is reached in two cases:
+         * <ul>
+         *     <li>after {@link android.app.Activity#onStart() onStart} call;
+         *     <li><b>right before</b> {@link android.app.Activity#onPause() onPause} call.
+         * </ul>
+         */
+        STARTED,
+
+        /**
+         * Resumed state for a LifecycleOwner. For an {@link android.app.Activity}, this state
+         * is reached after {@link android.app.Activity#onResume() onResume} is called.
+         */
+        RESUMED;
+
+        /**
+         * Compares if this State is greater or equal to the given {@code state}.
+         *
+         * @param state State to compare with
+         * @return true if this State is greater or equal to the given {@code state}
+         */
+        public boolean isAtLeast(@NonNull State state) {
+            return compareTo(state) >= 0;
+        }
+    }
+}
+```
+
+```java
+ObserverWithState 将state与Observer绑定
+	static class ObserverWithState {
+        State mState;
+        LifecycleEventObserver mLifecycleObserver;
+
+        ObserverWithState(LifecycleObserver observer, State initialState) {
+            mLifecycleObserver = Lifecycling.lifecycleEventObserver(observer);
+            mState = initialState;
+        }
+
+        void dispatchEvent(LifecycleOwner owner, Event event) {
+            State newState = event.getTargetState();
+            mState = min(mState, newState);
+            mLifecycleObserver.onStateChanged(owner, event);
+            mState = newState;
+        }
+    }
+
+对LifecycleObserver 进行转化
+    static LifecycleEventObserver lifecycleEventObserver(Object object) {
+        boolean isLifecycleEventObserver = object instanceof LifecycleEventObserver;
+        boolean isFullLifecycleObserver = object instanceof FullLifecycleObserver;
+    	// 如果是event同时是全生命周期，返回FullLifecycleObserverAdapter， 返回全部的生命周期且监听event事件
+        if (isLifecycleEventObserver && isFullLifecycleObserver) {
+            return new FullLifecycleObserverAdapter((FullLifecycleObserver) object,
+                    (LifecycleEventObserver) object);
+        }
+        if (isFullLifecycleObserver) {
+            return new FullLifecycleObserverAdapter((FullLifecycleObserver) object, null);
+        }
+		//如果本身就是event无需转化
+        if (isLifecycleEventObserver) {
+            return (LifecycleEventObserver) object;
+        }
+
+        final Class<?> klass = object.getClass();
+    	// 根据calss 判断是何种类型
+        int type = getObserverConstructorType(klass);
+        if (type == GENERATED_CALLBACK) {
+            List<Constructor<? extends GeneratedAdapter>> constructors =
+                    sClassToAdapters.get(klass);
+            if (constructors.size() == 1) {
+                GeneratedAdapter generatedAdapter = createGeneratedAdapter(
+                        constructors.get(0), object);
+                return new SingleGeneratedAdapterObserver(generatedAdapter);
+            }
+            GeneratedAdapter[] adapters = new GeneratedAdapter[constructors.size()];
+            for (int i = 0; i < constructors.size(); i++) {
+                adapters[i] = createGeneratedAdapter(constructors.get(i), object);
+            }
+            return new CompositeGeneratedAdaptersObserver(adapters);
+        }
+        return new ReflectiveGenericLifecycleObserver(object);
+    }
+//如果cash有直接获取，否则根据class判断
+ private static int getObserverConstructorType(Class<?> klass) {
+        Integer callbackCache = sCallbackCache.get(klass);
+        if (callbackCache != null) {
+            return callbackCache;
+        }
+        int type = resolveObserverCallbackType(klass);
+        sCallbackCache.put(klass, type);
+        return type;
+    }
+
+//根据class 来判断是何种类型
+ private static int resolveObserverCallbackType(Class<?> klass) {
+        // anonymous class bug:35073837
+     	//如果获取的类名是空，返回REFLECTIVE_CALLBACK
+        if (klass.getCanonicalName() == null) {
+            return REFLECTIVE_CALLBACK;
+        }
+
+     	//构造器不为null，返回GENERATED_CALLBACK
+        Constructor<? extends GeneratedAdapter> constructor = generatedConstructor(klass);
+        if (constructor != null) {
+            sClassToAdapters.put(klass, Collections
+                    .<Constructor<? extends GeneratedAdapter>>singletonList(constructor));
+            return GENERATED_CALLBACK;
+        }
+  
+		//判断注解是否有设置LifeEvent
+        @SuppressWarnings("deprecation")
+        boolean hasLifecycleMethods = ClassesInfoCache.sInstance.hasLifecycleMethods(klass);
+        if (hasLifecycleMethods) {
+            return REFLECTIVE_CALLBACK;
+        }
+
+     	// 判断其继承的类
+        Class<?> superclass = klass.getSuperclass();
+        List<Constructor<? extends GeneratedAdapter>> adapterConstructors = null;
+        if (isLifecycleParent(superclass)) {
+            if (getObserverConstructorType(superclass) == REFLECTIVE_CALLBACK) {
+                return REFLECTIVE_CALLBACK;
+            }
+            adapterConstructors = new ArrayList<>(sClassToAdapters.get(superclass));
+        }
+
+     //判断其实现的接口
+        for (Class<?> intrface : klass.getInterfaces()) {
+            if (!isLifecycleParent(intrface)) {
+                continue;
+            }
+            if (getObserverConstructorType(intrface) == REFLECTIVE_CALLBACK) {
+                return REFLECTIVE_CALLBACK;
+            }
+            if (adapterConstructors == null) {
+                adapterConstructors = new ArrayList<>();
+            }
+            adapterConstructors.addAll(sClassToAdapters.get(intrface));
+        }
+        if (adapterConstructors != null) {
+            sClassToAdapters.put(klass, adapterConstructors);
+            return GENERATED_CALLBACK;
+        }
+
+        return REFLECTIVE_CALLBACK;
+    }
+
+
+
+class FullLifecycleObserverAdapter implements LifecycleEventObserver {
+
+    private final FullLifecycleObserver mFullLifecycleObserver;
+    private final LifecycleEventObserver mLifecycleEventObserver;
+
+    FullLifecycleObserverAdapter(FullLifecycleObserver fullLifecycleObserver,
+            LifecycleEventObserver lifecycleEventObserver) {
+        mFullLifecycleObserver = fullLifecycleObserver;
+        mLifecycleEventObserver = lifecycleEventObserver;
+    }
+
+    @Override
+    public void onStateChanged(@NonNull LifecycleOwner source, @NonNull Lifecycle.Event event) {
+        switch (event) {
+            case ON_CREATE:
+                mFullLifecycleObserver.onCreate(source);
+                break;
+            case ON_START:
+                mFullLifecycleObserver.onStart(source);
+                break;
+            case ON_RESUME:
+                mFullLifecycleObserver.onResume(source);
+                break;
+            case ON_PAUSE:
+                mFullLifecycleObserver.onPause(source);
+                break;
+            case ON_STOP:
+                mFullLifecycleObserver.onStop(source);
+                break;
+            case ON_DESTROY:
+                mFullLifecycleObserver.onDestroy(source);
+                break;
+            case ON_ANY:
+                throw new IllegalArgumentException("ON_ANY must not been send by anybody");
+        }
+        if (mLifecycleEventObserver != null) {
+            mLifecycleEventObserver.onStateChanged(source, event);
+        }
+    }
+}
+    
+```
